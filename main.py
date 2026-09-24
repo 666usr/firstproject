@@ -12,6 +12,7 @@
     python main.py
     python main.py data/sample.csv
     python main.py -o report.txt
+    python main.py --column city
 """
 
 import argparse
@@ -126,6 +127,12 @@ def main():
         default=None,
         help="сохранить отчёт в файл (например, report.txt)",
     )
+    parser.add_argument(
+        "-c",
+        "--column",
+        default=None,
+        help="показать только одну колонку (например, city)",
+    )
     args = parser.parse_args()
 
     try:
@@ -134,11 +141,19 @@ def main():
         print("Ошибка: " + str(error), file=sys.stderr)
         return 1
 
-    print_report(args.file, columns, rows, sys.stdout)
+    shown_columns = columns
+    if args.column:
+        if args.column not in columns:
+            print("Ошибка: колонка не найдена: " + args.column, file=sys.stderr)
+            print("Доступные колонки: " + ", ".join(columns), file=sys.stderr)
+            return 1
+        shown_columns = [args.column]
+
+    print_report(args.file, shown_columns, rows, sys.stdout)
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as file:
-            print_report(args.file, columns, rows, file)
+            print_report(args.file, shown_columns, rows, file)
         print("Отчёт сохранён в файл: " + args.out)
 
     return 0
