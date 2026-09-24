@@ -5,11 +5,13 @@
   * чтение файла и разбор CSV стандартной библиотекой;
   * списки, словари, функции;
   * аккуратную обработку ошибок;
-  * аргументы командной строки через argparse.
+  * аргументы командной строки через argparse;
+  * запись отчёта в файл.
 
 Запуск:
     python main.py
     python main.py data/sample.csv
+    python main.py -o report.txt
 """
 
 import argparse
@@ -81,31 +83,31 @@ def format_value(number):
     return format(number, ".2f")
 
 
-def print_report(path, columns, rows):
-    """Печатает итоговый отчёт в консоль."""
-    print()
-    print("Отчёт по файлу: " + str(path))
-    print("Строк: " + str(len(rows)) + "   Колонок: " + str(len(columns)))
-    print("-" * 46)
+def print_report(path, columns, rows, stream):
+    """Печатает итоговый отчёт. stream - куда писать (консоль или файл)."""
+    print(file=stream)
+    print("Отчёт по файлу: " + str(path), file=stream)
+    print("Строк: " + str(len(rows)) + "   Колонок: " + str(len(columns)), file=stream)
+    print("-" * 46, file=stream)
 
     for column in columns:
         values = [row.get(column, "") for row in rows]
         info = summarize(values)
 
-        print()
-        print("- " + column + "  [" + info["type"] + "]")
-        print("    пропусков: " + str(info["missing"]))
+        print(file=stream)
+        print("- " + column + "  [" + info["type"] + "]", file=stream)
+        print("    пропусков: " + str(info["missing"]), file=stream)
 
         if info["type"] == "числовая":
-            print("    минимум: " + format_value(info["min"]))
-            print("    максимум: " + format_value(info["max"]))
-            print("    среднее: " + format_value(info["mean"]))
+            print("    минимум: " + format_value(info["min"]), file=stream)
+            print("    максимум: " + format_value(info["max"]), file=stream)
+            print("    среднее: " + format_value(info["mean"]), file=stream)
         else:
-            print("    уникальных значений: " + str(info["unique"]))
+            print("    уникальных значений: " + str(info["unique"]), file=stream)
             top = ", ".join(value + " (" + str(count) + ")" for value, count in info["top"])
-            print("    чаще всего: " + top)
+            print("    чаще всего: " + top, file=stream)
 
-    print()
+    print(file=stream)
 
 
 def main():
@@ -118,6 +120,12 @@ def main():
         default=str(DEFAULT_FILE),
         help="путь к CSV-файлу (по умолчанию data/sample.csv)",
     )
+    parser.add_argument(
+        "-o",
+        "--out",
+        default=None,
+        help="сохранить отчёт в файл (например, report.txt)",
+    )
     args = parser.parse_args()
 
     try:
@@ -126,7 +134,13 @@ def main():
         print("Ошибка: " + str(error), file=sys.stderr)
         return 1
 
-    print_report(args.file, columns, rows)
+    print_report(args.file, columns, rows, sys.stdout)
+
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as file:
+            print_report(args.file, columns, rows, file)
+        print("Отчёт сохранён в файл: " + args.out)
+
     return 0
 
 
